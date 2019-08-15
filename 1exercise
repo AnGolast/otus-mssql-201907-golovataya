@@ -1,104 +1,47 @@
 --1. Все товары, в которых в название есть пометка urgent или название начинается с Animal
 select StockItemName
-from [WideWorldImporters].[Warehouse].[StockItems]
-where StockItemName like '%urgent%' or StockItemName like '%Animal%';
+from [Warehouse].[StockItems]
+where StockItemName like '%urgent%' or StockItemName like 'Animal%';
 
 --2. Поставщиков, у которых не было сделано ни одного заказа (потом покажем как это делать через подзапрос, сейчас сделайте через JOIN)
 select [SupplierName], [Description]
 from [WideWorldImporters].[Purchasing].[Suppliers] as postav
-left join [WideWorldImporters].[Warehouse].[StockItems] as sklad 
-on postav.[SupplierID] = sklad.[SupplierID]
-left join [WideWorldImporters].[Sales].[OrderLines] as zakaz
-on sklad.[StockItemID] = zakaz.[StockItemID] 
+left join [Warehouse].[StockItems] as sklad on postav.[SupplierID] = sklad.[SupplierID]
+left join [Sales].[OrderLines] as zakaz on sklad.[StockItemID] = zakaz.[StockItemID] 
 where [Description] is null; 
 
 --3. Продажи с названием месяца, в котором была продажа, номером квартала, к которому относится продажа, включите также к какой трети года относится дата - каждая треть по 4 месяца, дата забора заказа должна быть задана, с ценой товара более 100$ либо количество единиц товара более 20. Добавьте вариант этого запроса с постраничной выборкой пропустив первую 1000 и отобразив следующие 100 записей. Соритровка должна быть по номеру квартала, трети года, дате продажи. 
-select [InvoiceDate],
-	case when [InvoiceDate] like '%-01-%' then 'January' 
-			when [InvoiceDate] like '%-02-%' then 'February'
-			when [InvoiceDate] like '%-03-%' then 'March'
-			when [InvoiceDate] like '%-04-%' then 'April'
-			when [InvoiceDate] like '%-05-%' then 'May'
-			when [InvoiceDate] like '%-06-%' then 'June'
-			when [InvoiceDate] like '%-07-%' then 'July'
-			when [InvoiceDate] like '%-08-%' then 'August'
-			when [InvoiceDate] like '%-09-%' then 'September'
-			when [InvoiceDate] like '%-10-%' then 'October'
-			when [InvoiceDate] like '%-11-%' then 'November'
-			when [InvoiceDate] like '%-12-%' then 'December'
-		end as [Месяц],
-	case when [InvoiceDate] like '%-01-%' or [InvoiceDate] like '%-02-%' or [InvoiceDate] like '%-03-%' then '1Q'
-		 when [InvoiceDate] like '%-04-%' or [InvoiceDate] like '%-05-%' or [InvoiceDate] like '%-06-%' then '2Q'
-		 when [InvoiceDate] like '%-07-%' or [InvoiceDate] like '%-08-%' or [InvoiceDate] like '%-09-%' then '3Q'
-		 when [InvoiceDate] like '%-10-%' or [InvoiceDate] like '%-11-%' or [InvoiceDate] like '%-12-%' then '4Q'
-	end as [Квартал],
-	case when [InvoiceDate] like '%-01-%' or [InvoiceDate] like '%-02-%' or [InvoiceDate] like '%-03-%' or [InvoiceDate] like '%-04-%'then '1'
-		 when [InvoiceDate] like '%-05-%' or [InvoiceDate] like '%-06-%' or [InvoiceDate] like '%-07-%' or [InvoiceDate] like '%-08-%'then '2'
-		 when [InvoiceDate] like '%-09-%' or [InvoiceDate] like '%-10-%' or [InvoiceDate] like '%-11-%' or [InvoiceDate] like '%-12-%'then '3'
-	end as [Треть года]
-from [WideWorldImporters].[Sales].[Invoices] as  prod
-left join [WideWorldImporters].[Sales].[OrderLines] as ord
+select [InvoiceDate], DATENAME(MONTH,[InvoiceDate]) as [Месяц], DATEPART(quarter,[InvoiceDate]) as [Квартал],((MONTH([InvoiceDate]) - 1)/4 +1) as [Треть года]
+from [Sales].[Invoices] as  prod
+left join [Sales].[OrderLines] as ord
 on prod.[OrderID] = ord.[OrderID]
-where [UnitPrice]>'100.00' or [Quantity] > '20'
-order by 	case when [InvoiceDate] like '%-01-%' then 'January' 
-			when [InvoiceDate] like '%-02-%' then 'February'
-			when [InvoiceDate] like '%-03-%' then 'March'
-			when [InvoiceDate] like '%-04-%' then 'April'
-			when [InvoiceDate] like '%-05-%' then 'May'
-			when [InvoiceDate] like '%-06-%' then 'June'
-			when [InvoiceDate] like '%-07-%' then 'July'
-			when [InvoiceDate] like '%-08-%' then 'August'
-			when [InvoiceDate] like '%-09-%' then 'September'
-			when [InvoiceDate] like '%-10-%' then 'October'
-			when [InvoiceDate] like '%-11-%' then 'November'
-			when [InvoiceDate] like '%-12-%' then 'December'
-		end ,
-	case when [InvoiceDate] like '%-01-%' or [InvoiceDate] like '%-02-%' or [InvoiceDate] like '%-03-%' then '1Q'
-		 when [InvoiceDate] like '%-04-%' or [InvoiceDate] like '%-05-%' or [InvoiceDate] like '%-06-%' then '2Q'
-		 when [InvoiceDate] like '%-07-%' or [InvoiceDate] like '%-08-%' or [InvoiceDate] like '%-09-%' then '3Q'
-		 when [InvoiceDate] like '%-10-%' or [InvoiceDate] like '%-11-%' or [InvoiceDate] like '%-12-%' then '4Q'
-	end ,
-	case when [InvoiceDate] like '%-01-%' or [InvoiceDate] like '%-02-%' or [InvoiceDate] like '%-03-%' or [InvoiceDate] like '%-04-%'then '1'
-		 when [InvoiceDate] like '%-05-%' or [InvoiceDate] like '%-06-%' or [InvoiceDate] like '%-07-%' or [InvoiceDate] like '%-08-%'then '2'
-		 when [InvoiceDate] like '%-09-%' or [InvoiceDate] like '%-10-%' or [InvoiceDate] like '%-11-%' or [InvoiceDate] like '%-12-%'then '3'
-	end 
+where [UnitPrice]>100.00 or [Quantity] > 20
+order by [Месяц], [Квартал], [Треть года]
 Offset 1000 Rows
 Fetch Next 100 Rows Only;
 
 --4. Заказы поставщикам, которые были исполнены за 2014й год с доставкой Road Freight или Post, 
 --добавьте название поставщика, имя контактного лица принимавшего заказ
-
 select [SupplierName] as [Название_поставщика],[DeliveryMethodName] as [Вид_доставки], [TransactionDate], [FullName] as [Имя]
-from [WideWorldImporters].[Purchasing].[Suppliers] as postav
-left join [WideWorldImporters].[Application].[DeliveryMethods] as dostavka
-on postav.[DeliveryMethodID] = dostavka.[DeliveryMethodID]
-left join [WideWorldImporters].[Purchasing].[SupplierTransactions] as tranzact
-on postav.[SupplierID] = tranzact.[SupplierID]
-left join [WideWorldImporters].[Application].[People] as contact
-on postav.[PrimaryContactPersonID] = contact.PersonID
+from [Purchasing].[Suppliers] as postav
+left join [Application].[DeliveryMethods] as dostavka on postav.[DeliveryMethodID] = dostavka.[DeliveryMethodID]
+left join [Purchasing].[SupplierTransactions] as tranzact on postav.[SupplierID] = tranzact.[SupplierID]
+left join [Application].[People] as contact on postav.[PrimaryContactPersonID] = contact.PersonID
 where ([DeliveryMethodName] = 'Road Freight' or [DeliveryMethodName] = 'Post')
  and ([TransactionDate] between '2014-01-01' and '2014-12-31') ;
  
-
 --5. 10 последних по дате продаж с именем клиента и именем сотрудника, который оформил заказ.
 select top 10 [CustomerName] as [Клиент],[FullName] as [Сотрудник],[InvoiceDate]
-from [WideWorldImporters].[Sales].[Invoices] as  prod
-left join [WideWorldImporters].[Application].[People] as sotrud
-on prod.[ContactPersonID] = sotrud.[PersonID]
-left join [WideWorldImporters].[Sales].[Customers] as client
-on prod.[CustomerID] = client.[CustomerID]
+from [Sales].[Invoices] as  prod
+left join [Application].[People] as sotrud on prod.[ContactPersonID] = sotrud.[PersonID]
+left join [Sales].[Customers] as client on prod.[CustomerID] = client.[CustomerID]
 order by [InvoiceDate] desc;
 
 --6. Все ид и имена клиентов и их контактные телефоны, которые покупали товар Chocolate frogs 250g
 select client.[CustomerID],[CustomerName],[PhoneNumber],[StockItemName]
-from (
-		select StockItemID, StockItemName
-		from [WideWorldImporters].[Warehouse].[StockItems]
-		where StockItemName = 'Chocolate frogs 250g' ) as prod
-left join  [WideWorldImporters].[Sales].[OrderLines] 
-on prod.StockItemID = [WideWorldImporters].[Sales].[OrderLines].StockItemID
-left join [WideWorldImporters].[Sales].[Orders]
-on [WideWorldImporters].[Sales].[OrderLines].[OrderID] = [WideWorldImporters].[Sales].[Orders].[OrderID]
-left join [WideWorldImporters].[Sales].[Customers] as client
-on [WideWorldImporters].[Sales].[Orders].[CustomerID] = client.[CustomerID];
+from [Warehouse].[StockItems] as prod
+left join [Sales].[OrderLines] on prod.StockItemID = [Sales].[OrderLines].StockItemID
+left join [Sales].[Orders] on [WideWorldImporters].[Sales].[OrderLines].[OrderID] = [Sales].[Orders].[OrderID]
+left join [Sales].[Customers] as client on [Sales].[Orders].[CustomerID] = client.[CustomerID]
+where StockItemName = 'Chocolate frogs 250g';
 
