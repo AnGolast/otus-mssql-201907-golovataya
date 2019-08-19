@@ -1,0 +1,57 @@
+--1. Выберите сотрудников, которые являются продажниками, и еще не сделали ни одной продажи.
+--1 вариант
+select [FullName]
+from [Application].[People] as sotrud
+where sotrud.[PersonID] not in (select distinct [ContactPersonID]
+								from [Sales].[Invoices])
+
+--2 вариант
+select [FullName]
+from [Application].[People] as sotrud
+where not sotrud.[PersonID] = any (select distinct [ContactPersonID]
+								from [Sales].[Invoices])
+								 
+--2. Выберите товары с минимальной ценой (подзапросом), 2 варианта подзапроса. 
+--1 вариант
+select [Description], minUnitPrice
+from (select min([UnitPrice]) as minUnitPrice
+		from [Sales].[OrderLines]) as price
+	left join [Sales].[OrderLines] on [Sales].[OrderLines].UnitPrice = price.minUnitPrice
+
+--2 вариант
+select [Description],[UnitPrice]
+from [Sales].[OrderLines]
+where [UnitPrice] <=all (select [UnitPrice]
+						from [Sales].[OrderLines])
+
+
+
+--3. Выберите информацию по клиентам, которые перевели компании 5 максимальных платежей 
+--из [Sales].[CustomerTransactions] представьте 3 способа (в том числе с CTE)
+--1 вариант
+select client.CustomerID as [ID клиента], CustomerName as [Клиент], TransactionAmount as [Сумма платежа]
+from (select top 5 TransactionAmount, CustomerID
+		from [Sales].[CustomerTransactions]
+		order by TransactionAmount desc) as platez
+left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
+
+--2 вариант
+with tab as ( select  top 5 client.CustomerID as [ID клиента], CustomerName as [Клиент], TransactionAmount as [Сумма платежа]
+				from [Sales].[CustomerTransactions] as platez
+					left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
+					order by [Сумма платежа] desc 
+				)
+select [ID клиента], [Клиент], [Сумма платежа]
+from tab
+
+
+
+--3 вариант
+with tab as(
+		select top 5 [CustomerID] as [ID клиента], max(TransactionAmount) as [Сумма платежа]
+		from [Sales].[CustomerTransactions]
+		group by [CustomerID]
+		order by [Сумма платежа] desc)
+select [ID клиента], CustomerName as [Клиент],[Сумма платежа]
+from tab
+	left join [Sales].[Customers] as client on client.CustomerID = tab.[ID клиента]
