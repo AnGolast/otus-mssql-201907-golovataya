@@ -3,26 +3,26 @@
 select [FullName]
 from [Application].[People] as sotrud
 where sotrud.[PersonID] not in (select distinct [ContactPersonID]
-								from [Sales].[Invoices])
+				from [Sales].[Invoices])
 
 --2 вариант
 select [FullName]
 from [Application].[People] as sotrud
 where not sotrud.[PersonID] = any (select distinct [ContactPersonID]
-								from [Sales].[Invoices])
+				   from [Sales].[Invoices])
 								 
 --2. Выберите товары с минимальной ценой (подзапросом), 2 варианта подзапроса. 
 --1 вариант
 select [Description], minUnitPrice
 from (select min([UnitPrice]) as minUnitPrice
-		from [Sales].[OrderLines]) as price
+      from [Sales].[OrderLines]) as price
 	left join [Sales].[OrderLines] on [Sales].[OrderLines].UnitPrice = price.minUnitPrice
 
 --2 вариант
 select [Description],[UnitPrice]
 from [Sales].[OrderLines]
 where [UnitPrice] <=all (select [UnitPrice]
-						from [Sales].[OrderLines])
+			from [Sales].[OrderLines])
 
 
 
@@ -37,21 +37,49 @@ left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
 
 --2 вариант
 with tab as ( select  top 5 client.CustomerID as [ID клиента], CustomerName as [Клиент], TransactionAmount as [Сумма платежа]
-				from [Sales].[CustomerTransactions] as platez
-					left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
-					order by [Сумма платежа] desc 
-				)
+		from [Sales].[CustomerTransactions] as platez
+			left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
+		order by [Сумма платежа] desc 
+		)
 select [ID клиента], [Клиент], [Сумма платежа]
 from tab
 
 
 
 --3 вариант
-with tab as(
-		select top 5 [CustomerID] as [ID клиента], max(TransactionAmount) as [Сумма платежа]
+with tab as(select top 5 [CustomerID] as [ID клиента], max(TransactionAmount) as [Сумма платежа]
 		from [Sales].[CustomerTransactions]
 		group by [CustomerID]
-		order by [Сумма платежа] desc)
+		order by [Сумма платежа] desc
+	    )
 select [ID клиента], CustomerName as [Клиент],[Сумма платежа]
 from tab
 	left join [Sales].[Customers] as client on client.CustomerID = tab.[ID клиента]
+	
+--4. Выберите города (ид и название), в которые были доставлены товары,
+-- входящие в тройку самых дорогих товаров, а также Имя сотрудника, который осуществлял упаковку заказов
+select distinct top 3 [Description], [UnitPrice], [FullName], [DeliveryInstructions]
+from [Sales].[OrderLines] as ordlin
+	left join [Sales].[Invoices] as inv on inv.[OrderID] = ordlin.[OrderID]
+	left join [Application].[People] as sotrud on sotrud.[PersonID] = inv.[SalespersonPersonID]
+	left join [Sales].[Customers] as cust on cust.[CustomerID] = inv.CustomerID
+	left join [Application].Cities as city on city.CityID = cust.PostalCityID
+		order by UnitPrice desc
+		
+		
+--5. вариант оптимизации
+use [WideWorldImporters]
+select Invoices.InvoiceID, 
+Invoices.InvoiceDate,
+People.FullName,
+SalesTotals.TotalSumm
+FROM Sales.Invoices as Invoices
+	left join Application.People as People on People.PersonID = Invoices.SalespersonPersonID
+	left join (SELECT InvoiceId, SUM(Quantity*UnitPrice) AS TotalSumm
+				FROM Sales.InvoiceLines
+				GROUP BY InvoiceId) as SalesTotals on SalesTotals.InvoiceID = Invoices.InvoiceID
+	left join Sales.Orders as Orders on Orders.OrderID = Invoices.OrderId
+where  Orders.PickingCompletedWhen IS NOT NULL
+and (SalesTotals.TotalSumm > 27000)       
+ORDER BY TotalSumm DESC  
+
