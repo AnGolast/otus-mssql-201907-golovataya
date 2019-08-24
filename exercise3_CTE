@@ -10,61 +10,89 @@ select [FullName]
 from [Application].[People] as sotrud
 where not sotrud.[PersonID] = any (select distinct [ContactPersonID]
 				   from [Sales].[Invoices])
+				   
+--3 вариант с CTE
+with tab as (
+	select FullName
+	from Application.People as sotrud
+	where sotrud.PersonID not in (select distinct ContactPersonID
+				from Sales.Invoices)
+		)
+select FullName
+from tab				   
 								 
 --2. Выберите товары с минимальной ценой (подзапросом), 2 варианта подзапроса. 
 --1 вариант
-select [Description], minUnitPrice
-from (select min([UnitPrice]) as minUnitPrice
-      from [Sales].[OrderLines]) as price
-	left join [Sales].[OrderLines] on [Sales].[OrderLines].UnitPrice = price.minUnitPrice
-
+select StockItemName,UnitPrice 
+from  Warehouse.StockItems
+where  UnitPrice = (select min(UnitPrice)
+		from Warehouse.StockItems)
 --2 вариант
-select [Description],[UnitPrice]
-from [Sales].[OrderLines]
-where [UnitPrice] <=all (select [UnitPrice]
-			from [Sales].[OrderLines])
+select StockItemName,UnitPrice 
+from Warehouse.StockItems
+where UnitPrice <=all (select UnitPrice
+		from Warehouse.StockItems)
 
 
 
 --3. Выберите информацию по клиентам, которые перевели компании 5 максимальных платежей 
 --из [Sales].[CustomerTransactions] представьте 3 способа (в том числе с CTE)
 --1 вариант
-select client.CustomerID as [ID клиента], CustomerName as [Клиент], TransactionAmount as [Сумма платежа]
+select client.CustomerID as ID клиента, CustomerName as [Клиент], TransactionAmount as [Сумма платежа]
 from (select top 5 TransactionAmount, CustomerID
 		from [Sales].[CustomerTransactions]
 		order by TransactionAmount desc) as platez
-left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
+join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
 
 --2 вариант
 with tab as ( select  top 5 client.CustomerID as [ID клиента], CustomerName as [Клиент], TransactionAmount as [Сумма платежа]
-		from [Sales].[CustomerTransactions] as platez
-			left join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
-		order by [Сумма платежа] desc 
+	from [Sales].[CustomerTransactions] as platez
+		join [Sales].[Customers] as client on client.CustomerID = platez.CustomerID
+	order by [Сумма платежа] desc 
 		)
 select [ID клиента], [Клиент], [Сумма платежа]
 from tab
 
-
-
 --3 вариант
 with tab as(select top 5 [CustomerID] as [ID клиента], max(TransactionAmount) as [Сумма платежа]
-		from [Sales].[CustomerTransactions]
-		group by [CustomerID]
-		order by [Сумма платежа] desc
-	    )
+	from [Sales].[CustomerTransactions]
+	group by [CustomerID]
+	order by [Сумма платежа] desc
+	)
+
 select [ID клиента], CustomerName as [Клиент],[Сумма платежа]
 from tab
-	left join [Sales].[Customers] as client on client.CustomerID = tab.[ID клиента]
+	join [Sales].[Customers] as client on client.CustomerID = tab.[ID клиента]
 	
 --4. Выберите города (ид и название), в которые были доставлены товары,
 -- входящие в тройку самых дорогих товаров, а также Имя сотрудника, который осуществлял упаковку заказов
-select distinct top 3 [Description], [UnitPrice], [FullName], [DeliveryInstructions]
-from [Sales].[OrderLines] as ordlin
-	left join [Sales].[Invoices] as inv on inv.[OrderID] = ordlin.[OrderID]
-	left join [Application].[People] as sotrud on sotrud.[PersonID] = inv.[SalespersonPersonID]
-	left join [Sales].[Customers] as cust on cust.[CustomerID] = inv.CustomerID
-	left join [Application].Cities as city on city.CityID = cust.PostalCityID
-		order by UnitPrice desc
+--1 вариант с CTE
+with order_line as (select OrderID, ord_lin.Description, ord_lin.UnitPrice
+		from Sales.OrderLines as ord_lin
+			join (select distinct top 3 Description, UnitPrice
+				from Sales.OrderLines 
+				order by UnitPrice desc
+				)as ordlin on ord_lin.Description = ordlin.Description 
+					and ord_lin.UnitPrice = ordlin.UnitPrice 
+		)
+		
+select Description, UnitPrice, FullName, CityName
+from order_line 
+	join Sales.Invoices as inv on inv.OrderID = order_line.OrderID
+	join Application.People as sotrud on sotrud.PersonID = inv.SalespersonPersonID
+	join Sales.Customers as cust on cust.CustomerID = inv.CustomerID
+	join Application.Cities as city on city.CityID = cust.PostalCityID
+
+--2 вариант вложенный запрос
+select Description, UnitPrice, FullName, CityName
+from Sales.OrderLines as order_line
+	join Sales.Invoices as inv on inv.OrderID = order_line.OrderID
+	join Application.People as sotrud on sotrud.PersonID = inv.SalespersonPersonID
+	join Sales.Customers as cust on cust.CustomerID = inv.CustomerID
+	join Application.Cities as city on city.CityID = cust.PostalCityID
+where UnitPrice in (select distinct top 3 UnitPrice
+						from Sales.OrderLines 
+						order by UnitPrice desc)
 		
 		
 --5. Объясните, что делает и оптимизируйте запрос:
@@ -72,18 +100,19 @@ from [Sales].[OrderLines] as ordlin
 --и сумму по чекую Сумма заказа больше 27000 и при условии, что заказ еще не отправлен (не собран). Сортировка по сумме от я до а
  
 вариант оптимизации
-use [WideWorldImporters]
-select Invoices.InvoiceID, 
-Invoices.InvoiceDate,
-People.FullName,
-SalesTotals.TotalSumm
-FROM Sales.Invoices as Invoices
-	left join Application.People as People on People.PersonID = Invoices.SalespersonPersonID
-	left join (SELECT InvoiceId, SUM(Quantity*UnitPrice) AS TotalSumm
-				FROM Sales.InvoiceLines
-				GROUP BY InvoiceId) as SalesTotals on SalesTotals.InvoiceID = Invoices.InvoiceID
-	left join Sales.Orders as Orders on Orders.OrderID = Invoices.OrderId
-where  Orders.PickingCompletedWhen IS NOT NULL
-and (SalesTotals.TotalSumm > 27000)       
-ORDER BY TotalSumm DESC  
+
+with SalesTotals as (select InvoiceId, SUM(Quantity*UnitPrice) as TotalSumm
+				from Sales.InvoiceLines
+				group by InvoiceId
+				having SUM(Quantity*UnitPrice) >27000
+				)
+
+select Invoices.InvoiceID, Invoices.InvoiceDate, People.FullName, SalesTotals.TotalSumm
+from Sales.Invoices as Invoices
+	join Application.People as People on People.PersonID = Invoices.SalespersonPersonID
+	right join SalesTotals on SalesTotals.InvoiceID = Invoices.InvoiceID
+	join Sales.Orders as Orders on Orders.OrderID = Invoices.OrderId
+where  Orders.PickingCompletedWhen IS NOT NULL 
+order by TotalSumm desc 
+
 
