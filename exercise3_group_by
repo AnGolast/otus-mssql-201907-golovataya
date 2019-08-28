@@ -14,11 +14,11 @@ with amount_sum as (
 				)
 select [month], [sum_transaction] 
 from amount_sum
-where [sum_transaction] > 100000
+where [sum_transaction] > 100000:
 
 --3. Вывести сумму продаж, дату первой продажи и количество проданного по месяцам, по товарам, 
 --продажи которых менее 50 ед в месяц. Группировка должна быть по году и месяцу.
-
+--grouping sets 
 select sum(Quantity) as sum_quantity,sum(TransactionAmount) as [sum_transaction], month(TransactionDate) as month_trans,year(TransactionDate) as year_trans
 from Sales.CustomerTransactions as cust_trans
 join Sales.Invoices as invoices on cust_trans.InvoiceID = invoices.InvoiceID
@@ -30,7 +30,17 @@ group by StockItemID,
 		year(TransactionDate))
 				)
 having sum(Quantity) < 50 
-order by  year_trans, month_trans
+order by  year_trans, month_trans;
+
+--обычная группировка 
+select sum(Quantity) as sum_quantity,sum(TransactionAmount) as [sum_transaction], month(TransactionDate) as month_trans,year(TransactionDate) as year_trans
+from Sales.CustomerTransactions as cust_trans
+join Sales.Invoices as invoices on cust_trans.InvoiceID = invoices.InvoiceID
+join Sales.OrderLines as orders on orders.OrderID = invoices.OrderID
+--where StockItemID = 32
+group by StockItemID,month(TransactionDate),year(TransactionDate)
+having sum(Quantity) < 50 
+order by  year_trans, month_trans;
 
 --4. Написать рекурсивный CTE sql запрос и заполнить им временную таблицу и табличную переменную
 --создана таблица MyEmployees 
