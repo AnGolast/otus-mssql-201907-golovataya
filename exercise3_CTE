@@ -14,7 +14,7 @@ where not sotrud.[PersonID] = any (select distinct [ContactPersonID]
 --3 вариант с CTE
 ;with tab as (
 	 select distinct ContactPersonID
-				from Sales.Invoices
+	 from Sales.Invoices
 		)
 select FullName
 	from Application.People as sotrud
