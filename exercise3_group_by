@@ -44,11 +44,38 @@ order by  year_trans, month_trans;
 
 --4. Написать рекурсивный CTE sql запрос и заполнить им временную таблицу и табличную переменную
 --создана таблица MyEmployees 
+--временная таблица
+create table #time_table
+(EmployeeID smallint NOT NULL,
+Name nvarchar(80) NOT NULL,
+Title nvarchar(50) NOT NULL);
+
 with recurs_cte as (select EmployeeID,(FirstName + LastName) as Name, Title, DeptID, ManagerID
 					from dbo.MyEmployees
-					where EmployeeID =1
+					where ManagerID is null
 					union all
 					select emp.EmployeeID,(emp.FirstName + emp.LastName) as Name, emp.Title, emp.DeptID, emp.ManagerID
 					from dbo.MyEmployees as emp
 						inner join recurs_cte on recurs_cte.EmployeeID=emp.ManagerID )
+insert into #time_table (EmployeeID, Name,Title) 
+select EmployeeID, Name,Title
+from recurs_cte;
+
+--табличная переменная
+declare @tab table (EmployeeID smallint NOT NULL,
+					Name nvarchar(80) NOT NULL,
+					Title nvarchar(50) NOT NULL);
+
+with recurs_cte as (select EmployeeID,(FirstName + LastName) as Name, Title, DeptID, ManagerID
+from dbo.MyEmployees
+where ManagerID is null
+union all
+select emp.EmployeeID,(emp.FirstName + emp.LastName) as Name, emp.Title, emp.DeptID, emp.ManagerID
+from dbo.MyEmployees as emp
+	inner join recurs_cte on recurs_cte.EmployeeID=emp.ManagerID )
+
+insert into @tab
+select EmployeeID, Name,Title
+				  from recurs_cte 
 select *
+from @tab
