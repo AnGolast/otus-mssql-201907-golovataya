@@ -1,15 +1,40 @@
+use [WideWorldImporters];
+
 --1. Довставлять в базу 5 записей используя insert в таблицу Customers или Suppliers
 insert into Sales.Customers
-	(CustomerID, CustomerName, BillToCustomerID, CustomerCategoryID,BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID,CreditLimit,AccountOpenedDate,StandardDiscountPercentage,IsStatementSent,IsOnCreditHold,PaymentDays, PhoneNumber,FaxNumber,DeliveryRun,RunPosition,WebsiteURL,DeliveryAddressLine1,DeliveryAddressLine2,DeliveryPostalCode,DeliveryLocation,PostalAddressLine1,PostalAddressLine2,PostalPostalCode,LastEditedBy,ValidFrom,ValidTo)
-select (next value for sequences.CustomerID) as CustomerID, CustomerName, BillToCustomerID, CustomerCategoryID,BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID,CreditLimit,AccountOpenedDate,StandardDiscountPercentage,IsStatementSent,IsOnCreditHold,PaymentDays, PhoneNumber,FaxNumber,DeliveryRun,RunPosition,WebsiteURL,DeliveryAddressLine1,DeliveryAddressLine2,DeliveryPostalCode,DeliveryLocation,PostalAddressLine1,PostalAddressLine2,PostalPostalCode,LastEditedBy,ValidFrom,ValidTo
+	(CustomerID, CustomerName, BillToCustomerID, CustomerCategoryID,BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID,CreditLimit,AccountOpenedDate,StandardDiscountPercentage,IsStatementSent,IsOnCreditHold,PaymentDays, PhoneNumber,FaxNumber,DeliveryRun,RunPosition,WebsiteURL,DeliveryAddressLine1,DeliveryAddressLine2,DeliveryPostalCode,DeliveryLocation,PostalAddressLine1,PostalAddressLine2,PostalPostalCode,LastEditedBy)
+select (next value for sequences.CustomerID) as CustomerID, CustomerName + '1', BillToCustomerID, CustomerCategoryID,BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID,CreditLimit,AccountOpenedDate,StandardDiscountPercentage,IsStatementSent,IsOnCreditHold,PaymentDays, PhoneNumber,FaxNumber,DeliveryRun,RunPosition,WebsiteURL,DeliveryAddressLine1,DeliveryAddressLine2,DeliveryPostalCode,DeliveryLocation,PostalAddressLine1,PostalAddressLine2,PostalPostalCode,LastEditedBy
 from Sales.Customers
 where CustomerID < 6;
---ошибка Невозможно вставить явное значение в системный столбец GENERATED ALWAYS в таблице "WideWorldImporters.Sales.Customers". Используйте команду INSERT и список столбцов, чтобы исключить системный столбец GENERATED ALWAYS, или вставьте в него значение DEFAULT.
 
-insert into Sales.Customers(CustomerName, BillToCustomerID, CustomerCategoryID,BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID,CreditLimit,AccountOpenedDate,StandardDiscountPercentage,IsStatementSent,IsOnCreditHold,PaymentDays, PhoneNumber,FaxNumber,DeliveryRun,RunPosition,WebsiteURL,DeliveryAddressLine1,DeliveryAddressLine2,DeliveryPostalCode,DeliveryLocation,PostalAddressLine1,PostalAddressLine2,PostalPostalCode,LastEditedBy,ValidFrom,ValidTo)
-values (next value for sequences.CustomerID,'book',1,15,1,1000,1001,3,26483,26483,NULL,43709,0.000,0,0,2,'(846)111-11-11','(846)111-11-11',null,null,'www.new_url','new shop 52','1970 Khandke Road','90205','0','PO Box 3648','Lucescuville','90205',1,2019-09-01,9999-12-31),
-	  (next value for sequences.CustomerID,'book 2',1,15,1,1000,1001,3,26483,26483,NULL,43709,0.000,0,0,2,'(846)111-11-12','(846)111-11-12',null,null,'www.new_url','new shop 11','1970 Khandke Road','90205','0','PO Box 3648','Lucescuville','90205',1,2019-09-01,9999-12-31),
-	  (next value for sequences.CustomerID,'book 3',1,15,1,1000,1001,3,26483,26483,NULL,43709,0.000,0,0,2,'(846)111-11-13','(846)111-11-13',null,null,'www.new_url','new shop 44','1970 Khandke Road','90205','0','PO Box 3648','Lucescuville','90205',1,2019-09-01,9999-12-31),
-	  (next value for sequences.CustomerID,'book 4',1,15,1,1000,1001,3,26483,26483,NULL,43709,0.000,0,0,2,'(846)111-11-14','(846)111-11-14',null,null,'www.new_url','new shop 67','1970 Khandke Road','90205','0','PO Box 3648','Lucescuville','90205',1,2019-09-01,9999-12-31),
-	  (next value for sequences.CustomerID,'book 5',1,15,1,1000,1001,3,26483,26483,NULL,43709,0.000,0,0,2,'(846)111-11-15','(846)111-11-15',null,null,'www.new_url','new shop 32','1970 Khandke Road','90205','0','PO Box 3648','Lucescuville','90205',1,2019-09-01,9999-12-31);
---ошибка Невозможно вставить явное значение в системный столбец GENERATED ALWAYS в таблице "WideWorldImporters.Sales.Customers". Используйте команду INSERT и список столбцов, чтобы исключить системный столбец GENERATED ALWAYS, или вставьте в него значение DEFAULT.
+--пробный с добавленеием  1 строки
+insert into Sales.Customers(CustomerID,CustomerName, BillToCustomerID, CustomerCategoryID, BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID, CreditLimit, AccountOpenedDate, StandardDiscountPercentage, IsStatementSent, IsOnCreditHold, PaymentDays, PhoneNumber, FaxNumber, DeliveryRun, RunPosition, WebsiteURL, DeliveryAddressLine1, DeliveryAddressLine2, DeliveryPostalCode, DeliveryLocation, PostalAddressLine1, PostalAddressLine2, PostalPostalCode, LastEditedBy)
+values (next value for sequences.CustomerID,'book',2,1,1,1001,1001,3,26483,26483,2000.00,'2019-09-01',0.000,0,0,2,'(846)111-11-11','(846)111-11-11',null,null,'www.new_url','new shop 52','1970 Khandke Road','90205',null,'PO Box 3648','Lucescuville','90205',1)
+
+
+--2. удалите 1 запись из Customers, которая была вами добавлена
+delete from Sales.Customers where CustomerID = 1067
+
+--3. изменить одну запись, из добавленных через UPDATE
+update Sales.Customers
+set CustomerName = 'Toys', BillToCustomerID = 1068
+where CustomerID = 1;
+
+--4. Написать MERGE, который вставит вставит запись в клиенты, если ее там нет, и изменит если она уже есть
+create table #custid (id int not null, custname nvarchar(100) not null);
+insert into #custid
+values (2,'new_toys'),
+		(2000, 'toys2');
+
+merge Sales.Customers as cust
+using #custid as custid
+on cust.CustomerID = custid.id
+when matched then update set CustomerName = 'new_toys'
+when not matched then insert (CustomerID,CustomerName, BillToCustomerID, CustomerCategoryID, BuyingGroupID, PrimaryContactPersonID, 
+AlternateContactPersonID,DeliveryMethodID,DeliveryCityID, PostalCityID,AccountOpenedDate,StandardDiscountPercentage,IsStatementSent,
+IsOnCreditHold,PaymentDays,PhoneNumber, FaxNumber,WebsiteURL,DeliveryAddressLine1,DeliveryPostalCode,PostalAddressLine1,PostalPostalCode,LastEditedBy)
+						values (id,custname,1,1,1,1,1,1,1,1,'2019-07-01',2.000, 1,1, 25,'(846)888-55-22', '(846)895-55-22','www.web_site',
+								'shop92','22 Khandke','95',1,1);
+
+--5. Напишите запрос, который выгрузит данные через bcp out и загрузить через bulk insert
+
