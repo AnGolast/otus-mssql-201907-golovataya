@@ -38,3 +38,5 @@ IsOnCreditHold,PaymentDays,PhoneNumber, FaxNumber,WebsiteURL,DeliveryAddressLine
 
 --5. Напишите запрос, который выгрузит данные через bcp out и загрузить через bulk insert
 
+bcp [WideWorldImporters].[Sales].[Customers] out "C:\Users\Anastasiya\Custom.txt" -N,-S "LAPTOP-133FTJAU\SQL2017";
+
