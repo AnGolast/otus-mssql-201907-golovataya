@@ -1,0 +1,39 @@
+use books_shop;
+--1. 3-4 основные таблицы для своего проекта.2. Первичные и внешние ключи для всех созданных таблиц
+create table dbo.orders (id_order int not null primary key,
+						 date_order date not null,
+						 name_order int not null,
+						 quantity int not null,
+						 id_delivery int not null,
+						 date_delivery date not null,
+						 customer int not null 
+							);
+create table dbo.customer (id_customer int not null primary key,
+						   firstname nvarchar(50) not null,
+						   sername nvarchar(50) null,
+						   email nvarchar(150) null,
+						   phone_number nvarchar(15) not null,
+						   birthday date null
+							);
+create table dbo.product (id_product int not null primary key,
+						  autor nvarchar(50) null,
+						  name_product nvarchar(100) not null,
+						  publishing nvarchar(50) null,
+						  year_publish nvarchar(4) null,
+						  pages nvarchar(10) null,
+						  quantity int not null,
+						  price float not null
+						    );
+alter table dbo.orders
+add foreign key (name_order) references dbo.product(id_product);
+
+alter table dbo.orders
+add foreign key (customer) references dbo.customer(id_customer);
+
+--3. 1-2 индекса на таблицы
+--кластеризованные индексы создались автоматически, при создании первичного ключа.
+create nonclustered index delivery_nonclustered on dbo.orders
+(
+id_delivery asc
+)
+go
