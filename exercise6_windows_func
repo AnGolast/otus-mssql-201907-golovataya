@@ -4,45 +4,56 @@ use [WideWorldImporters];
 --Выведите id продажи, название клиента, дату продажи, сумму продажи, сумму нарастающим итогом
 
 ;with summa as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as [sum]
-		from Sales.Invoices as inv 
-			join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-			join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
-		group by inv.InvoiceID, CustomerName, InvoiceDate )
+			   from Sales.Invoices as inv 
+				join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+				join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
+			   group by inv.InvoiceID, CustomerName, InvoiceDate )
 
 select InvoiceID, CustomerName,InvoiceDate,[sum],itog
 from summa
-join (select sum ([sum]) as itog,month(InvoiceDate) as [month], year(InvoiceDate) as [year]
-      from summa										 
-	group by month(InvoiceDate),year(InvoiceDate)
-		) as itog on month(summa.InvoiceDate) >= itog.[month] and year(summa.InvoiceDate) >= itog.[year]
-order by InvoiceDate;
+join (
+		select sum ([sum]) as itog,month(InvoiceDate) as [month], year(InvoiceDate) as [year]
+				from summa										 
+		group by month(InvoiceDate),year(InvoiceDate)
+		) as itog on month(summa.InvoiceDate) >= itog.[month]
+					and year(summa.InvoiceDate) >= itog.[year]
+order by InvoiceDate					;
 --2. Если вы брали предложенный выше запрос, то сделайте расчет суммы нарастающим итогом с помощью оконной функции.
 ;with summa as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as [sum]
-		from Sales.Invoices as inv 
-			join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-			join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
-		group by inv.InvoiceID, CustomerName, InvoiceDate
-		)
+			   from Sales.Invoices as inv 
+				join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+				join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
+			   group by inv.InvoiceID, CustomerName, InvoiceDate
+			   )
 
-select InvoiceID,CustomerName,InvoiceDate,[sum],
-sum([sum]) over (order by year(InvoiceDate),month(InvoiceDate)) as itog
+select InvoiceID,
+	   CustomerName,
+	   InvoiceDate,
+	   [sum],
+	   sum([sum]) over (order by year(InvoiceDate),month(InvoiceDate)) as itog
 from summa
 order by InvoiceDate;
+
+--Сравните 2 варианта запроса - через windows function и без них. Написать какой быстрее выполняется, сравнить по set statistics time on;
+
 
 --2. Вывести список 2х самых популярных продуктов (по кол-ву проданных) в каждом месяце за 2016й год 
 --(по 2 самых популярных продукта в каждом месяце)
 ;with quantity as (
-		select distinct month(OrderDate) as [month],Description,
-		sum(Quantity) as Mquantity,
-		row_number() over (partition by month(OrderDate) order by sum(Quantity) desc) as num
-		from Sales.OrderLines as ordlin
-			join Sales.Orders as ord on ordlin.OrderID=ord.OrderID 
-		where year(OrderDate) = 2016 
-		group by month(OrderDate),Description)
+select distinct month(OrderDate) as [month],
+	   Description,
+	   sum(Quantity) as Mquantity,
+	   row_number() over (partition by month(OrderDate) order by sum(Quantity) desc) as num
+from Sales.OrderLines as ordlin
+join Sales.Orders as ord on ordlin.OrderID=ord.OrderID 
+where year(OrderDate) = 2016 
+group by month(OrderDate),Description )
 
 select [month], Description, Mquantity, num 
 from quantity
 where num <3;
+
+
 
 
 3. Функции одним запросом
@@ -60,12 +71,12 @@ where num <3;
 --В результатах должны быть ид и фамилия сотрудника, ид и название клиента, дата продажи, сумму сделки
 --окон.функции
 ;with last_cust as (
-		select PersonID,FullName, cust.CustomerID, CustomerName, InvoiceDate, UnitPrice,
-		row_number() over (partition by FullName order by InvoiceDate desc) as num
-		from Application.People as sotrud
-			join Sales.Invoices as inv on sotrud.PersonID = inv.ContactPersonID
-			join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-			join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
+select PersonID,FullName, cust.CustomerID, CustomerName, InvoiceDate, UnitPrice,
+row_number() over (partition by FullName order by InvoiceDate desc) as num
+from Application.People as sotrud
+join Sales.Invoices as inv on sotrud.PersonID = inv.ContactPersonID
+join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
 
 select PersonID, FullName,CustomerID, CustomerName, InvoiceDate, UnitPrice
 from last_cust
@@ -74,31 +85,30 @@ where num = 1;
 --без окон.фуннк.
 select distinct max_date_inv.ContactPersonID,max_date_inv.mdate, PersonID,FullName, cust.CustomerID, CustomerName, InvoiceDate, UnitPrice
 from (
-	select max(InvoiceDate) as mdate, ContactPersonID
-	from Sales.Invoices
-	group by ContactPersonID
-) as max_date_inv
-	left join Sales.Invoices as inv on max_date_inv.mdate = inv.InvoiceDate and max_date_inv.ContactPersonID = inv.ContactPersonID
-	left join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-	left join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID 
-	left join Application.People as sotrud on sotrud.PersonID = inv.ContactPersonID
+select max(InvoiceDate) as mdate, ContactPersonID
+from Sales.Invoices
+group by ContactPersonID) as max_date_inv
+left join Sales.Invoices as inv on max_date_inv.mdate = inv.InvoiceDate and max_date_inv.ContactPersonID = inv.ContactPersonID
+left join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+left join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID 
+left join Application.People as sotrud on sotrud.PersonID = inv.ContactPersonID
 order by ContactPersonID;
 
 --5. Выберите по каждому клиенту 2 самых дорогих товара, которые он покупал
 --В результатах должно быть ид клиета, его название, ид товара, цена, дата покупки
 --окон.функ
 ;with max_price as (
-		select cust.CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice,InvoiceDate,
-		row_number () over (partition by cust.CustomerID order by UnitPrice desc) as num
-		from Sales.Customers as cust
-			join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
-			join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
+select cust.CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice,InvoiceDate,
+row_number () over (partition by cust.CustomerID order by UnitPrice desc) as num
+from Sales.Customers as cust
+join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
+join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
 
 select max_price.CustomerID, max_price.CustomerName, max_price.InvoiceLineID, max_price.Description, max_price.UnitPrice
 from max_price
 where num <3;
 
---без окон.функ. как можно сделать 2 и 5?
+--без окон.функ. как можно сделать?
 
 
 
