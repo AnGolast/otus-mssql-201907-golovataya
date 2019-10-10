@@ -3,21 +3,16 @@ use [WideWorldImporters];
 --Сделать расчет суммы продаж нарастающим итогом по месяцам с 2015 года (в рамках одного месяца он будет одинаковый, нарастать будет в течение времени выборки)
 --Выведите id продажи, название клиента, дату продажи, сумму продажи, сумму нарастающим итогом
 
-;with summa as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as [sum]
-			   from Sales.Invoices as inv 
+;with summ as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as sum_inv
+				from Sales.Invoices as inv 
 				join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-				join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
-			   group by inv.InvoiceID, CustomerName, InvoiceDate )
-
-select InvoiceID, CustomerName,InvoiceDate,[sum],itog
-from summa
-join (
-		select sum ([sum]) as itog,month(InvoiceDate) as [month], year(InvoiceDate) as [year]
-				from summa										 
-		group by month(InvoiceDate),year(InvoiceDate)
-		) as itog on month(summa.InvoiceDate) >= itog.[month]
-					and year(summa.InvoiceDate) >= itog.[year]
-order by InvoiceDate					;
+				join Sales.InvoiceLines as invline on invline.InvoiceID = inv.InvoiceID
+				group by inv.InvoiceID, CustomerName, InvoiceDate)
+select InvoiceID, CustomerName, InvoiceDate,sum_inv, (select sum(sum_inv) as sum1 
+						from summ as sum1 
+						where sum1.InvoiceDate <= summ.InvoiceDate) as itog
+from summ
+order by InvoiceDate;						;
 --2. Если вы брали предложенный выше запрос, то сделайте расчет суммы нарастающим итогом с помощью оконной функции.
 ;with summa as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as [sum]
 			   from Sales.Invoices as inv 
@@ -33,9 +28,8 @@ select InvoiceID,
 	   sum([sum]) over (order by year(InvoiceDate),month(InvoiceDate)) as itog
 from summa
 order by InvoiceDate;
-
---Сравните 2 варианта запроса - через windows function и без них. Написать какой быстрее выполняется, сравнить по set statistics time on;
-
+--Сравните 2 варианта запроса - через windows function и без них. 
+--по стоимости и размеру плана в кэш памяти запрос с оконными функциями намного меньше 
 
 --2. Вывести список 2х самых популярных продуктов (по кол-ву проданных) в каждом месяце за 2016й год 
 --(по 2 самых популярных продукта в каждом месяце)
@@ -108,8 +102,15 @@ select max_price.CustomerID, max_price.CustomerName, max_price.InvoiceLineID, ma
 from max_price
 where num <3;
 
---без окон.функ. как можно сделать?
-
+--без окон.функ.
+;with cust_inv as (select cust.CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice, InvoiceDate
+				from Sales.Customers as cust
+				join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
+				join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
+				--order by cust.CustomerID, UnitPrice offset 0 row)
+select CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice, InvoiceDate
+from cust_inv as max_price 
+where (select count(1) from cust_inv where max_price.CustomerID = cust_inv.CustomerID and cust_inv.UnitPrice >= max_price.UnitPrice) <=2
 
 
 --Опционально можно сделать вариант запросов для заданий 2,4,5 без использования windows function и сравнить скорость как в задании 1.\
