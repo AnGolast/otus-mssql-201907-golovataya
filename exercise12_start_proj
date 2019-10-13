@@ -1,61 +1,78 @@
---create database books_shop;
+create database books_shop;
 --бд книжный магазин. содержит информацию о покупателях, книгах и заказах клиентов
-use books_shop;
---1. 3-4 основные таблицы для своего проекта.2. Первичные и внешние ключи для всех созданных таблиц
---таблица "заказы" содержит номер заказа-первичный ключ, дату, номер продута, количество заказываемого товара, вид доставки, дату доставки и номер клиента
+--use books_shop;
+--таблица "заказы" 
 create table dbo.orders (id_order int not null primary key,
 						 date_order date not null,
-						 id_product int not null,
-						 quantity int not null,
+						 summ_order decimal not null,
 						 id_delivery int not null,
 						 date_delivery date not null,
-						 id_customer int not null 
-							);
---таблица "клиенты" содержит номер клиента - id первичный ключ, имя и фамилию,email, телефонный номер и дату рождения
+						 id_customer int not null ,
+						 employee nvarchar(100) not null);
+--таблица "позиции заказа"						
+create table dbo.order_details (id_order_delails int not null primary key,
+								id_order int not null,
+								id_product int not null,
+								quantity int not null);
+
+--таблица "клиенты" 
 create table dbo.customers (id_customer int not null primary key,
 						   firstname nvarchar(50) not null,
-						   sername nvarchar(50) null,
-						   email nvarchar(150) null,
+						   surname nvarchar(50) null,
+						   email nvarchar(150) not null,
 						   phone_number nvarchar(15) not null,
 						   birthday date null
 							);
---таблица "продукт" содержит номер продукта, фио автора, название книги, название издательства, год издания, количество страниц, количество имеющихся в наличии и цену
+--таблица "продукт" 
 create table dbo.products (id_product int not null primary key,
-						  autor nvarchar(50) null,
+						  id_author int not null,
 						  name_product nvarchar(100) not null,
 						  publishing nvarchar(50) null,
 						  year_publish nvarchar(4) null,
-						  pages nvarchar(10) null,
-						  quantity int not null,
+						  pages int null,
 						  price decimal not null,
-						  id_castomer int not null,
-						  id_sale int not null
-						    );
+						  id_category int not null,
+						  id_sale int not null);
+--таблица "автор"							
+create table dbo.authors (id_author int not null primary key,
+							name nvarchar(100) not null);
+--таблица "склад"
+create table dbo.warehouses (id_position int not null primary key,
+							id_product int not null,
+							quantity int not null,
+							date_change date not null);
 --таблица категории, содержит инфомарцию о категории и жанре "продукта"
-create table dbo.categories (id_castomer int not null primary key,
+create table dbo.categories (id_category int not null primary key,
 							category nvarchar(20) null,
-							zanr nvarchar(20) null);
+							genre nvarchar(20) null);
 --таблица акции\скидки: наимеование акции срок действия и наличие скидки
-create table dbo.sale (id_sale int not null primary key,
+create table dbo.sales (id_sale int not null primary key,
 						name_sale nvarchar(20) not null,
 						sale int null,
-						date_sale date null);
+						start_date date null,
+						end_date date null);
 --таблица доставка: вид доставки и стоимость
-create table dbo.delivery (id_delivery int not null primary key,
+create table dbo.delivery_types (id_delivery int not null primary key,
 							type nvarchar(10) not null,
 							price decimal not null);
-
-alter table dbo.orders
-add foreign key (id_product) references dbo.products(id_product);
 
 alter table dbo.orders
 add foreign key (id_customer) references dbo.customers(id_customer);
 
 alter table dbo.orders
-add foreign key (id_delivery) references dbo.delivery(id_delivery);
+add foreign key (id_delivery) references dbo.delivery_types(id_delivery);
+
+alter table dbo.order_details
+add foreign key (id_product) references dbo.products(id_product);
+
+alter table dbo.order_details
+add foreign key (id_order) references dbo.orders(id_order);
 
 alter table dbo.products
-add foreign key (id_sale) references dbo.sale(id_sale);
+add foreign key (id_sale) references dbo.sales(id_sale);
 
 alter table dbo.products
-add foreign key (id_castomer) references dbo.categories(id_castomer);
+add foreign key (id_category) references dbo.category(id_category);
+
+alter table dbo.products
+add foreign key (id_author) references dbo.authors(id_author);
