@@ -2,33 +2,32 @@ use [WideWorldImporters];
 --1. Напишите запрос с временной таблицей и перепишите его с табличной переменной. Сравните планы. 
 --Сделать расчет суммы продаж нарастающим итогом по месяцам с 2015 года (в рамках одного месяца он будет одинаковый, нарастать будет в течение времени выборки)
 --Выведите id продажи, название клиента, дату продажи, сумму продажи, сумму нарастающим итогом
-
-;with summ as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as sum_inv
-				from Sales.Invoices as inv 
-				join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-				join Sales.InvoiceLines as invline on invline.InvoiceID = inv.InvoiceID
-				group by inv.InvoiceID, CustomerName, InvoiceDate)
+	
+;with summ as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(Quantity*UnitPrice) as sum_inv
+		from Sales.Invoices as inv 
+		join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+		join Sales.InvoiceLines as invline on invline.InvoiceID = inv.InvoiceID
+		group by inv.InvoiceID, CustomerName, InvoiceDate)
 select InvoiceID, CustomerName, InvoiceDate,sum_inv, (select sum(sum_inv) as sum1 
-						from summ as sum1 
-						where sum1.InvoiceDate <= summ.InvoiceDate) as itog
+							from summ as sum1 
+							where sum1.InvoiceDate <= summ.InvoiceDate 
+							) as itog
 from summ
-order by InvoiceDate;						;
---2. Если вы брали предложенный выше запрос, то сделайте расчет суммы нарастающим итогом с помощью оконной функции.
-;with summa as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(ExtendedPrice) as [sum]
-			   from Sales.Invoices as inv 
-				join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-				join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
-			   group by inv.InvoiceID, CustomerName, InvoiceDate
-			   )
+order by InvoiceDate;	
 
-select InvoiceID,
-	   CustomerName,
-	   InvoiceDate,
-	   [sum],
-	   sum([sum]) over (order by year(InvoiceDate),month(InvoiceDate)) as itog
+--2. Если вы брали предложенный выше запрос, то сделайте расчет суммы нарастающим итогом с помощью оконной функции.
+;with summa as (select inv.InvoiceID, CustomerName, InvoiceDate, sum(Quantity*UnitPrice) as [sum]
+		from Sales.Invoices as inv 
+		join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+		join Sales.InvoiceLines as inv_lin on inv_lin.InvoiceID = inv.InvoiceID
+		group by inv.InvoiceID, CustomerName, InvoiceDate
+		)
+select InvoiceID,CustomerName,InvoiceDate,[sum],
+	sum([sum]) over (order by year(InvoiceDate),month(InvoiceDate)) as itog
 from summa
 order by InvoiceDate;
---Сравните 2 варианта запроса - через windows function и без них. 
+
+--Сравните 2 варианта запроса - через windows function и без них. Написать какой быстрее выполняется, сравнить по set statistics time on;
 --по стоимости и размеру плана в кэш памяти запрос с оконными функциями намного меньше 
 
 --2. Вывести список 2х самых популярных продуктов (по кол-ву проданных) в каждом месяце за 2016й год 
@@ -47,31 +46,36 @@ select [month], Description, Mquantity, num
 from quantity
 where num <3;
 
+--3. Функции одним запросом
+--Посчитайте по таблице товаров, в вывод также должен попасть ид товара, название, брэнд и цена
+--пронумеруйте записи по названию товара, так чтобы при изменении буквы алфавита нумерация начиналась заново
+--посчитайте общее количество товаров и выведете полем в этом же запросе
+--посчитайте общее количество товаров в зависимости от первой буквы названия товара
+--отобразите следующий id товара исходя из того, что порядок отображения товаров по имени 
+--предыдущий ид товара с тем же порядком отображения (по имени)
+--названия товара 2 строки назад, в случае если предыдущей строки нет нужно вывести "No items"
+--сформируйте 30 групп товаров по полю вес товара на 1 шт
 
-
-
-3. Функции одним запросом
-Посчитайте по таблице товаров, в вывод также должен попасть ид товара, название, брэнд и цена
-пронумеруйте записи по названию товара, так чтобы при изменении буквы алфавита нумерация начиналась заново
-посчитайте общее количество товаров и выведете полем в этом же запросе
-посчитайте общее количество товаров в зависимости от первой буквы названия товара
-отобразите следующий id товара исходя из того, что порядок отображения товаров по имени 
-предыдущий ид товара с тем же порядком отображения (по имени)
-названия товара 2 строки назад, в случае если предыдущей строки нет нужно вывести "No items"
-сформируйте 30 групп товаров по полю вес товара на 1 шт
-Для этой задачи НЕ нужно писать аналог без аналитических функций
+select StockItemID, StockItemName, Brand, UnitPrice,
+row_number() over (partition by left(StockItemName, 1) order by StockItemName),
+count(1) over() as total_amount,
+count(1) over (partition by left(StockItemName, 1)) as total_amount_alph, 
+lead(StockItemID) over (order by StockItemName) as next_product,
+lag(StockItemID) over (order by StockItemName) as prew_product,
+lag(StockItemName,2, 'No items') over (order by StockItemName) as prew_two_product,
+ntile(30) over (order by TypicalWeightPerUnit) as group_weight
+from Warehouse.StockItems
 
 --4. По каждому сотруднику выведите последнего клиента, которому сотрудник что-то продал
 --В результатах должны быть ид и фамилия сотрудника, ид и название клиента, дата продажи, сумму сделки
 --окон.функции
 ;with last_cust as (
-select PersonID,FullName, cust.CustomerID, CustomerName, InvoiceDate, UnitPrice,
-row_number() over (partition by FullName order by InvoiceDate desc) as num
-from Application.People as sotrud
-join Sales.Invoices as inv on sotrud.PersonID = inv.ContactPersonID
-join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
-join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
-
+		select PersonID,FullName, cust.CustomerID, CustomerName, InvoiceDate, UnitPrice,
+		row_number() over (partition by FullName order by InvoiceDate desc) as num
+		from Application.People as sotrud
+		join Sales.Invoices as inv on sotrud.PersonID = inv.ContactPersonID
+		join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
+		join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
 select PersonID, FullName,CustomerID, CustomerName, InvoiceDate, UnitPrice
 from last_cust
 where num = 1;
@@ -79,9 +83,9 @@ where num = 1;
 --без окон.фуннк.
 select distinct max_date_inv.ContactPersonID,max_date_inv.mdate, PersonID,FullName, cust.CustomerID, CustomerName, InvoiceDate, UnitPrice
 from (
-select max(InvoiceDate) as mdate, ContactPersonID
-from Sales.Invoices
-group by ContactPersonID) as max_date_inv
+	select max(InvoiceDate) as mdate, ContactPersonID
+	from Sales.Invoices
+	group by ContactPersonID) as max_date_inv
 left join Sales.Invoices as inv on max_date_inv.mdate = inv.InvoiceDate and max_date_inv.ContactPersonID = inv.ContactPersonID
 left join Sales.Customers as cust on inv.CustomerID = cust.CustomerID
 left join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID 
@@ -92,26 +96,24 @@ order by ContactPersonID;
 --В результатах должно быть ид клиета, его название, ид товара, цена, дата покупки
 --окон.функ
 ;with max_price as (
-select cust.CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice,InvoiceDate,
-row_number () over (partition by cust.CustomerID order by UnitPrice desc) as num
-from Sales.Customers as cust
-join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
-join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
+			select cust.CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice,InvoiceDate,
+			row_number () over (partition by cust.CustomerID order by UnitPrice desc) as num
+			from Sales.Customers as cust
+			join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
+			join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
 
 select max_price.CustomerID, max_price.CustomerName, max_price.InvoiceLineID, max_price.Description, max_price.UnitPrice
 from max_price
-where num <3;
+where num <=2;
 
 --без окон.функ.
 ;with cust_inv as (select cust.CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice, InvoiceDate
-				from Sales.Customers as cust
-				join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
-				join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
-				--order by cust.CustomerID, UnitPrice offset 0 row)
+			from Sales.Customers as cust
+			join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
+			join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID)
 select CustomerID, CustomerName, InvoiceLineID, Description, UnitPrice, InvoiceDate
 from cust_inv as max_price 
 where (select count(1) from cust_inv where max_price.CustomerID = cust_inv.CustomerID and cust_inv.UnitPrice >= max_price.UnitPrice) <=2
-
 
 --Опционально можно сделать вариант запросов для заданий 2,4,5 без использования windows function и сравнить скорость как в задании 1.\
 --задание 4.скорость выполнения примерно одинаковая: окон.функ ~ 10, без окон.функ ~ 11, а вот размер плана в кеш-памяти у окон.функции в 2 раза меньше.
