@@ -37,6 +37,22 @@ IsOnCreditHold,PaymentDays,PhoneNumber, FaxNumber,WebsiteURL,DeliveryAddressLine
 								'shop92','22 Khandke','95',1,1);
 
 --5. Напишите запрос, который выгрузит данные через bcp out и загрузить через bulk insert
+EXEC sp_configure 'show advanced options', 1;
+GO
+RECONFIGURE;
+GO
+EXEC sp_configure 'xp_cmdshell', 1;
+GO
+RECONFIGURE;
+GO
 
-bcp [WideWorldImporters].[Sales].[Customers] out "C:\Users\Anastasiya\Custom.txt" -N,-S "LAPTOP-133FTJAU\SQL2017";
 
+xp_cmdshell 'bcp select customername from [WideWorldImporters].[Sales].[Customers] out "C:\Users\Public\Documents\Cust.txt" -T -c -S "LAPTOP-133FTJAU\SQL2017"';
+
+
+xp_cmdshell 'bcp "select customername from [WideWorldImporters].[Sales].[Customers]" queryout "C:\Users\Public\Documents\Cust1.txt" -T -c -S "LAPTOP-133FTJAU\SQL2017"';
+
+create table WideWorldImporters.Sales.CustomersBulkInsert (name_cust varchar(100) null)
+;
+BULK INSERT WideWorldImporters.Sales.CustomersBulkInsert
+FROM 'C:\Users\Public\Documents\Cust1.txt';
