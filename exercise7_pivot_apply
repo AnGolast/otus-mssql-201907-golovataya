@@ -1,0 +1,56 @@
+use WideWorldImporters;
+--1. Требуется написать запрос, который в результате своего выполнения формирует таблицу следующего вида:
+--Название клиента
+--МесяцГод Количество покупок
+
+--Клиентов взять с ID 2-6, это все подразделение Tailspin Toys
+--имя клиента нужно поменять так чтобы осталось только уточнение
+--например исходное Tailspin Toys (Gasport, NY) - вы выводите в имени только Gasport,NY
+--дата должна иметь формат dd.mm.yyyy например 25.12.2019
+
+select InvDate,[Peeples Valley, AZ],[Medicine Lodge, KS],[Gasport, NY],[Jessie, ND],[Frankewing, TN]
+from(
+	select cust.CustomerID,SUBSTRING(CustomerName,16,LEN(CustomerName)-16) as CustName, format(InvoiceDate, 'dd.MM.yyyy') as InvDate
+	from Sales.Customers as cust
+		right join (
+					select CustomerID, InvoiceDate
+					from Sales.Invoices 
+					where CustomerID in (3,4,5,6,7)
+					)as inv on cust.CustomerID = inv.CustomerID
+		) as tab
+pivot 
+(count(CustomerID)
+for CustName
+in ([Peeples Valley, AZ],[Medicine Lodge, KS],[Gasport, NY],[Jessie, ND],[Frankewing, TN])
+)pvt;
+
+--2. Для всех клиентов с именем, в котором есть Tailspin Toys
+
+select CustomerName+' '+addressline
+from (
+		select CustomerName,PostalAddressLine1,PostalAddressLine2
+		from Sales.Customers
+		where CustomerName like 'Tailspin Toy%' )  as cust
+unpivot (addressline for column_name in (PostalAddressLine1,PostalAddressLine2)) as piv
+
+--3. В таблице стран есть поля с кодом страны цифровым и буквенным
+--сделайте выборку ИД страны, название, код - чтобы в поле был либо цифровой либо буквенный код
+
+select CountryID, CountryName,code
+from (select CountryID, CountryName,IsoAlpha3Code,cast(IsoNumericCode as nvarchar(3)) as alphacode
+	from Application.Countries) as countr
+unpivot (code for column_name in (IsoAlpha3Code,alphacode)) as unpiv;
+
+--4. Перепишите ДЗ из оконных функций через CROSS APPLY
+--Выберите по каждому клиенту 2 самых дорогих товара, которые он покупал
+--В результатах должно быть ид клиета, его название, ид товара, цена, дата покупки		
+select customer.CustomerID, customer.CustomerName, max_sum.InvoiceLineID, max_sum.Description, max_sum.InvSum, max_sum.InvoiceDate
+from Sales.Customers as customer
+cross apply (
+select top 2 cust.CustomerID, Quantity*UnitPrice as InvSum, Description, InvoiceLineID, InvoiceDate
+from Sales.Customers as cust
+				join Sales.Invoices as inv on inv.CustomerID = cust.CustomerID
+				join Sales.InvoiceLines as invline on inv.InvoiceID = invline.InvoiceID
+where cust.CustomerID = customer.CustomerID
+order by Quantity*UnitPrice desc) as max_sum ;
+
