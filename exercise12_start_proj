@@ -1,22 +1,24 @@
 create database books_shop;
 --бд книжный магазин. содержит информацию о покупателях, книгах и заказах клиентов
---use books_shop;
+use books_shop;
 --таблица "заказы" 
-create table dbo.orders (id_order int not null primary key,
+create table dbo.orders (order_id int not null primary key,
 						 date_order date not null,
 						 summ_order decimal not null,
-						 id_delivery int not null,
+						 delivery_type_id int not null,
 						 date_delivery date not null,
-						 id_customer int not null ,
-						 employee nvarchar(100) not null);
+						 customer_id int not null ,
+						 packed_by_employee nvarchar(100) not null);
 --таблица "позиции заказа"						
-create table dbo.order_details (id_order_delails int not null primary key,
-								id_order int not null,
-								id_product int not null,
-								quantity int not null);
+create table dbo.order_details (order_details_id int not null primary key,
+								order_id int not null,
+								product_id int not null,
+								price_list_id int not null,
+								quantity int not null,
+								sale_id int not null);
 
 --таблица "клиенты" 
-create table dbo.customers (id_customer int not null primary key,
+create table dbo.customers (customer_id int not null primary key,
 						   firstname nvarchar(50) not null,
 						   surname nvarchar(50) null,
 						   email nvarchar(150) not null,
@@ -24,55 +26,78 @@ create table dbo.customers (id_customer int not null primary key,
 						   birthday date null
 							);
 --таблица "продукт" 
-create table dbo.products (id_product int not null primary key,
-						  id_author int not null,
+create table dbo.products (product_id int not null primary key,
+						  author_id int not null,
 						  name_product nvarchar(100) not null,
-						  publishing nvarchar(50) null,
+						  publisher_id int not null,
 						  year_publish nvarchar(4) null,
 						  pages int null,
-						  price decimal not null,
-						  id_category int not null,
-						  id_sale int not null);
+						  category_id int not null);
+--таблица "издательство"
+create table dbo.publishers (publisher_id int not null primary key,
+							 publisher_name nvarchar(50) not null);
+
+--таблица "прайс-лист"
+create table dbo.price_list (price_list_id int not null primary key,
+							product_id int not null,
+							price decimal not null,
+							begin_date date not null,
+							end_date date not null)
 --таблица "автор"							
-create table dbo.authors (id_author int not null primary key,
+create table dbo.authors (author_id int not null primary key,
 							name nvarchar(100) not null);
 --таблица "склад"
-create table dbo.warehouses (id_position int not null primary key,
-							id_product int not null,
+create table dbo.warehouses (position_id int not null primary key,
+							product_id int not null,
 							quantity int not null,
 							date_change date not null);
 --таблица категории, содержит инфомарцию о категории и жанре "продукта"
-create table dbo.categories (id_category int not null primary key,
+create table dbo.categories (category_id int not null primary key,
 							category nvarchar(20) null,
 							genre nvarchar(20) null);
 --таблица акции\скидки: наимеование акции срок действия и наличие скидки
-create table dbo.sales (id_sale int not null primary key,
+create table dbo.sales (sale_id int not null primary key,
 						name_sale nvarchar(20) not null,
 						sale int null,
-						start_date date null,
+
+						begin_date date null,
 						end_date date null);
 --таблица доставка: вид доставки и стоимость
-create table dbo.delivery_types (id_delivery int not null primary key,
+create table dbo.delivery_types (delivery_type_id int not null primary key,
 							type nvarchar(10) not null,
 							price decimal not null);
 
 alter table dbo.orders
-add foreign key (id_customer) references dbo.customers(id_customer);
+add foreign key (customer_id) references dbo.customers(customer_id);
 
 alter table dbo.orders
-add foreign key (id_delivery) references dbo.delivery_types(id_delivery);
+add foreign key (delivery_type_id) references dbo.delivery_types(delivery_type_id);
 
 alter table dbo.order_details
-add foreign key (id_product) references dbo.products(id_product);
+add foreign key (product_id) references dbo.products(product_id);
 
 alter table dbo.order_details
-add foreign key (id_order) references dbo.orders(id_order);
+add foreign key (order_id) references dbo.orders(order_id);
+
+alter table dbo.order_details
+add foreign key (sale_id) references dbo.sales(sale_id);
 
 alter table dbo.products
-add foreign key (id_sale) references dbo.sales(id_sale);
+add foreign key (category_id) references dbo.categories(category_id);
 
 alter table dbo.products
-add foreign key (id_category) references dbo.category(id_category);
+add foreign key (author_id) references dbo.authors(author_id);
 
 alter table dbo.products
-add foreign key (id_author) references dbo.authors(id_author);
+add foreign key (publisher_id) references dbo.publishers(publisher_id);
+
+alter table dbo.warehouses
+add foreign key (product_id) references dbo.products(product_id);
+
+alter table dbo.price_list
+add foreign key (product_id) references dbo.products(product_id);
+
+alter table dbo.order_details
+add foreign key (price_list_id) references dbo.price_list(price_list_id);
+
+
