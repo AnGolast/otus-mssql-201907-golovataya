@@ -1,0 +1,21 @@
+use WideWorldImporters;
+go
+
+create table #Stockxml (stockid int identity(1,1),
+			[Item Name] nvarchar(100) not null,
+			SupplierID int not null,
+			UnitPackageID int not null,
+			OuterPackageID int not null,
+			QuantityPerOuterv int not null,
+			TypicalWeightPerUnit decimal(18,3) not null,
+			LeadTimeDays int not null,
+			IsChillerStock bit not null,
+			TaxRate decimal(18,3) not null,
+			UnitPrice decimal(18,3) not null)
+go
+
+declare @DOCStockItems int
+declare @XMLStockItems xml
+set @XMLStockItems = N' select * from openrowset(BULK ''C:\Users\1\Documents\stockItems.xml'', single_blob) as stokxml'
+
+exec sp_xml_preparedocument @DOCStockItems OUTPUT, @XMLStockItems
