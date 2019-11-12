@@ -1,0 +1,10 @@
+use books_shop
+
+go
+
+create fulltext catalog book_catalog with accent_sensitivity = off
+as default
+authorization dbo
+
+go
+
