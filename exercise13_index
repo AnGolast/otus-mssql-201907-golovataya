@@ -1,7 +1,7 @@
 use books_shop
 
 go
-
+--полнотекстовый индекс на поле "название книги" таблицы "Товары"
 create fulltext catalog book_catalog with accent_sensitivity = off
 as default
 authorization dbo
@@ -12,4 +12,21 @@ create fulltext index on dbo.products
 (name_product) key index [PK__products__47027DF5A9F35660] on (book_catalog)
 --auto для автоматического обновления индекса (manual ручное - если таблица обновляется часто)
 with (change_tracking auto)
+go
+
+
+--полнотекстовый индекс на поле "ФИО автора" таблицы "Авторы"
+create fulltext catalog author_catalog with accent_sensitivity = off
+as default
+authorization dbo
+
+go
+
+create fulltext index on dbo.authors
+(name) key index [PK__authors__86516BCF54B8775B] on (author_catalog)
+with (change_tracking auto)
+go
+
+--некластепрный индекс на таблицу "заказы" - поле "ФИО сотрудника, оформившего заказ"
+create nonclustered  index IX_Nonclustered_emp on dbo.orders(packed_by_employee)
 go
